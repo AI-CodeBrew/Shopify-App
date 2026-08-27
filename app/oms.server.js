@@ -56,7 +56,7 @@ export class OmsSchemaMissingError extends Error {
   constructor() {
     super(
       "integrations.shopify_pending_installs does not exist. Apply the OMS " +
-        "migration in oms-patch-proposal/, or run `npm run oms:bootstrap`.",
+        "migration in backend/integrations/migrations/, or run `npm run oms:bootstrap`.",
     );
     this.name = "OmsSchemaMissingError";
   }

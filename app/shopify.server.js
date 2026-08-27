@@ -30,7 +30,7 @@ const shopify = shopifyApp({
     // refresh path, so every sync would start failing a day after connect.
     // Permanent offline tokens are what the OMS's model actually supports.
     // Turning this on later means teaching the OMS to refresh - see
-    // oms-patch-proposal/README.md.
+    // the OMS patch README at the root of this repo's parent directory.
     expiringOfflineAccessTokens: false,
   },
   hooks: {

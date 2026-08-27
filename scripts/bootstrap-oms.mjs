@@ -2,7 +2,7 @@
  * Creates integrations.shopify_pending_installs in the OMS database.
  *
  * The OMS owns its own schema through Django migrations, so the real home for
- * this table is oms-patch-proposal/backend/integrations/migrations/. This
+ * this table is ../backend/integrations/migrations/. This
  * script exists for the case where you want the Shopify app working against a
  * dev/staging database before wiring the migration into the OMS repo.
  *
@@ -15,7 +15,10 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const SQL_PATH = resolve(here, "../../oms-patch-proposal/0010_shopify_pending_installs.sql");
+const SQL_PATH = resolve(
+  here,
+  "../../backend/integrations/migrations/0010_shopify_pending_installs.sql",
+);
 
 if (process.env.OMS_ALLOW_BOOTSTRAP !== "1") {
   console.error(
