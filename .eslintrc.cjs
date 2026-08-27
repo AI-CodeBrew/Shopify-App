@@ -19,7 +19,12 @@ module.exports = {
     commonjs: true,
     es6: true,
   },
-  ignorePatterns: ["!**/.server", "!**/.client"],
+  // backend/ and frontend/ are the OMS patch snippets (see OMS-PATCH.md):
+  // Django files and Next.js fragments meant to be pasted into
+  // D:/OMS-FynkTech. They are not part of this app and do not resolve on
+  // their own. Listed here rather than in .eslintignore because the lint
+  // script passes --ignore-path .gitignore, which overrides that file.
+  ignorePatterns: ["!**/.server", "!**/.client", "backend/**", "frontend/**"],
 
   // Base config
   extends: ["eslint:recommended"],
