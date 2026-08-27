@@ -4,6 +4,10 @@
 # This app exists to do one job: on install, capture the store's Admin API
 # credentials and hand them to the FynkTech OMS so the merchant only has to
 # press "Connect" once. See README-OMS.md.
+#
+# NOTE: `shopify app config link` overwrites this file with whatever Shopify
+# currently holds for the app. Commit before running it, and diff afterwards -
+# it silently replaced the scope list below with a 3-scope default once.
 
 client_id = "7590f0304311e258480108f37b900604"
 name = "FynkTech AI"
@@ -12,12 +16,12 @@ application_url = "https://REPLACE-ME.example.com"
 embedded = true
 
 [access_scopes]
-# Managed installation: this list is the source of truth once deployed with
-# include_config_on_deploy. Keep SCOPES in .env identical for local dev.
-#
 # Grouped by the OMS module that consumes it. Anything marked PROTECTED needs
-# an explicit approval request in the Partner Dashboard before the App Store
+# an explicit approval request in the Dev Dashboard before the App Store
 # listing can go live - see README-OMS.md "Protected scopes".
+#
+# Keep SCOPES in .env byte-identical to this list; `npm run oms:doctor` fails
+# if the two drift.
 scopes = """
 read_orders,
 write_orders,
@@ -56,6 +60,9 @@ read_shopify_payments_disputes
 optional_scopes = [ ]
 
 [auth]
+# The app mounts OAuth at authPathPrefix "/auth" (app/shopify.server.js), so
+# /auth/callback is the one that actually matters. The other two are kept for
+# the older paths some Shopify tooling still probes.
 redirect_urls = [
   "https://REPLACE-ME.example.com/auth/callback",
   "https://REPLACE-ME.example.com/auth/shopify/callback",
@@ -81,5 +88,6 @@ api_version = "2026-10"
   uri = "/webhooks/compliance"
 
 [build]
-include_config_on_deploy = true
+# `include_config_on_deploy` was removed by the CLI - every app now includes
+# its configuration on deploy, so the flag no longer exists.
 automatically_update_urls_on_dev = true
