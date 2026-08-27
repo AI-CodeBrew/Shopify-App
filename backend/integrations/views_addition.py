@@ -17,7 +17,7 @@ ShopifyConnectionView.post. That was the smallest additive change. The cleaner
 end state is to extract those ~30 lines into
 `services.establish_shopify_connection(organization_id, shop_domain,
 access_token, webhook_secret)` and have both views call it - see
-OMS-PATCH.md, "Optional refactor".
+OMS-PATCH.md in this folder, "Optional refactor".
 """
 
 from django.conf import settings

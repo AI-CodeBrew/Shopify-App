@@ -63,7 +63,7 @@ Required env — see `.env.example` for the full annotated list:
 ### The OMS side
 
 The staging table does not exist yet. Apply
-`backend/integrations/migrations/0010_shopifypendinginstall.py`
+`../backend/integrations/migrations/0010_shopifypendinginstall.py`
 through Django (preferred — it is the OMS's schema), or for a dev database only:
 
 ```bash

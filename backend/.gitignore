@@ -1,0 +1,4 @@
+# Bytecode from syntax-checking the patch files. Nothing here is executed
+# in place - these files are copied into D:/OMS-FynkTech.
+__pycache__/
+*.pyc

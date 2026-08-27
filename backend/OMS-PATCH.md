@@ -3,16 +3,21 @@
 **Nothing in `D:/OMS-FynkTech` has been modified.** Everything here is a proposal
 for you to review and apply yourself.
 
-This repo's Shopify app (`app/`, `shopify.app.toml`) is finished and does its
-half of the job: on install it captures the store domain, the `shpat_` Admin API
+The Shopify app in `../frontend/` is finished and does its half of the job: on install it captures the store domain, the `shpat_` Admin API
 token and the `shpss_` secret, and writes them into your Supabase database. This
 patch is the OMS half — reading that row and turning it into a real
 `ShopifyConnection` when the merchant presses **Connect**.
 
-The `backend/` and `frontend/` folders here hold **only** those patch files.
-They are not part of the Shopify app and nothing builds or runs them — the
-Shopify app's own server and UI code both live in `app/`. See README-OMS.md for
-the app itself.
+Repo layout — two folders, nothing else:
+
+- **`backend/`** (this folder) — the OMS's Django patch, plus the UI patch's
+  companion docs. Nothing here is executed in place; the files are copied into
+  `D:/OMS-FynkTech`.
+- **`../frontend/`** — the Shopify app itself, a React Router project. Its own
+  server and UI code both live in `../frontend/app/`. See
+  `../frontend/README-OMS.md` to run it. The OMS's *UI* patch sits in
+  `../frontend/oms-patch/`, next to the app because it is frontend code, but it
+  is not part of the app's build either.
 
 ## What the merchant experiences once both halves are live
 
@@ -28,8 +33,7 @@ the app itself.
 
 ## Files
 
-`backend/` and `frontend/` mirror the OMS's own layout, so every file sits at
-the same path it is destined for inside `D:/OMS-FynkTech`.
+Paths below are relative to the repo root.
 
 | File here | Goes to, in the OMS |
 | --- | --- |
@@ -37,8 +41,8 @@ the same path it is destined for inside `D:/OMS-FynkTech`.
 | `backend/integrations/models_addition.py` | append the class to `backend/integrations/models.py` |
 | `backend/integrations/views_addition.py` | append the view to `backend/integrations/views.py` (merge the imports) |
 | `backend/integrations/urls_addition.py` | add the one `path(...)` to `backend/integrations/urls.py` |
-| `frontend/integrationsService_addition.js` | add both methods to `frontend/services/integrationsService.js` |
-| `frontend/PendingInstallCard.jsx` | paste into `frontend/app/(tenant)/integrations/shopify/page.jsx` |
+| `frontend/oms-patch/integrationsService_addition.js` | add both methods to `frontend/services/integrationsService.js` |
+| `frontend/oms-patch/PendingInstallCard.jsx` | paste into `frontend/app/(tenant)/integrations/shopify/page.jsx` |
 | `backend/integrations/migrations/0010_shopify_pending_installs.sql` | raw DDL — reference only, or for the Shopify app's `npm run oms:bootstrap` in dev |
 
 Apply order: migration → model → view → url → frontend. Then:
