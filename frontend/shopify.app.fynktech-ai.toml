@@ -1,0 +1,36 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "b4106ce9be97bb8e2ac245470404d0d8"
+name = "FynkTech AI"
+application_url = "https://wrote-malpractice-indicating-manufactured.trycloudflare.com"
+embedded = true
+
+[webhooks]
+api_version = "2026-10"
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/compliance"
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_assigned_fulfillment_orders,read_customers,read_discounts,read_draft_orders,read_fulfillments,read_inventory,read_locations,read_merchant_managed_fulfillment_orders,read_order_edits,read_orders,read_price_rules,read_products,read_returns,read_shipping,read_shopify_payments_disputes,read_shopify_payments_payouts,read_third_party_fulfillment_orders,write_assigned_fulfillment_orders,write_customers,write_draft_orders,write_fulfillments,write_inventory,write_merchant_managed_fulfillment_orders,write_order_edits,write_orders,write_products,write_returns,write_shipping,write_third_party_fulfillment_orders"
+optional_scopes = [ ]
+
+[auth]
+redirect_urls = [
+  "https://wrote-malpractice-indicating-manufactured.trycloudflare.com/auth/callback",
+  "https://wrote-malpractice-indicating-manufactured.trycloudflare.com/auth/shopify/callback",
+  "https://wrote-malpractice-indicating-manufactured.trycloudflare.com/api/auth/callback"
+]
+
+[build]
+automatically_update_urls_on_dev = true

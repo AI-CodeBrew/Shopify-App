@@ -24,14 +24,23 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   future: {
-    // Deliberately OFF. Expiring offline tokens rotate every 24h behind a
-    // refresh token that only this app holds. The OMS stores one static
-    // `access_token` per store (integrations.ShopifyConnection) and has no
-    // refresh path, so every sync would start failing a day after connect.
-    // Permanent offline tokens are what the OMS's model actually supports.
-    // Turning this on later means teaching the OMS to refresh - see
-    // ../backend/OMS-PATCH.md.
-    expiringOfflineAccessTokens: false,
+    // ON. Shopify requires expiring offline tokens for new public apps as of
+    // April 1 2026 (all public apps by January 1 2027). The refresh_token
+    // this produces is captured in afterAuth below and staged alongside the
+    // access_token so backend-fastapi can refresh it independently - see
+    // backend-fastapi/app/shopify_client.py::refresh_access_token and
+    // backend-fastapi/scripts/refresh_tokens.py.
+    //
+    // Note: this app's own session (Prisma, below) also auto-refreshes on
+    // every embedded page load via the library's built-in
+    // ensureOfflineTokenIsNotExpired. That's a SEPARATE refresh cycle from
+    // backend-fastapi's - Shopify's docs warn that acquiring/refreshing a
+    // token from two places can retire the other's copy. backend-fastapi is
+    // the intended source of truth for ongoing access; if this app's own
+    // refresh ever invalidates backend-fastapi's stored refresh_token,
+    // backend-fastapi detects the failure and flags the connection instead
+    // of failing silently (see refresh_access_token's caller).
+    expiringOfflineAccessTokens: true,
   },
   hooks: {
     /**
@@ -44,6 +53,19 @@ const shopify = shopifyApp({
      * the embedded app surfaces the error and offers a retry instead.
      */
     afterAuth: async ({ session, admin }) => {
+      // Earliest point our own code sees the token - the raw HTTP exchange
+      // itself happens inside @shopify/shopify-api's token-exchange.js,
+      // which we don't control. Redacted (presence/length only, not the
+      // actual secret) per this project's "don't log real credentials" rule.
+      console.log("[oms] afterAuth session token shapes", {
+        shop: session.shop,
+        isOnline: session.isOnline,
+        accessToken: session.accessToken ? `present, len=${session.accessToken.length}` : "MISSING",
+        refreshToken: session.refreshToken ? `present, len=${session.refreshToken.length}` : "absent",
+        expires: session.expires ?? null,
+        refreshTokenExpires: session.refreshTokenExpires ?? null,
+      });
+
       await shopify.registerWebhooks({ session });
 
       if (!isOmsConfigured()) {
@@ -77,6 +99,13 @@ const shopify = shopifyApp({
           shopName: shop.name || "",
           currency: shop.currencyCode || "",
           accessToken: session.accessToken,
+          // Present because expiringOfflineAccessTokens is on above. Absent
+          // (undefined) session.expires/refreshToken/refreshTokenExpires would
+          // mean Shopify handed back a non-expiring token instead - shouldn't
+          // happen with the flag on, but savePendingInstall defaults handle it.
+          refreshToken: session.refreshToken || "",
+          accessTokenExpiresAt: session.expires ?? null,
+          refreshTokenExpiresAt: session.refreshTokenExpires ?? null,
           // What the OMS stores as `webhook_secret`: Shopify signs webhook
           // payloads with the app's shared secret, so this app's own secret is
           // exactly the key the OMS needs to verify them.

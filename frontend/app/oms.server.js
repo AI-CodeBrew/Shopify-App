@@ -119,6 +119,9 @@ export async function savePendingInstall({
   shopName = "",
   currency = "",
   accessToken,
+  refreshToken = "",
+  accessTokenExpiresAt = null,
+  refreshTokenExpiresAt = null,
   webhookSecret,
   scopes = "",
   apiVersion = "",
@@ -128,23 +131,27 @@ export async function savePendingInstall({
 }) {
   const { rows } = await query(
     `insert into integrations.shopify_pending_installs
-       (shop_domain, shop_name, currency, access_token, webhook_secret,
+       (shop_domain, shop_name, currency, access_token, refresh_token,
+        access_token_expires_at, refresh_token_expires_at, webhook_secret,
         scopes, api_version, installed_by_email, organization_id,
         match_method, status, claim_code)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending',
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending',
              upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 8)))
      on conflict (shop_domain) do update set
-       shop_name          = excluded.shop_name,
-       currency           = excluded.currency,
-       access_token       = excluded.access_token,
-       webhook_secret     = excluded.webhook_secret,
-       scopes             = excluded.scopes,
-       api_version        = excluded.api_version,
-       installed_by_email = excluded.installed_by_email,
-       organization_id    = coalesce(
-                              integrations.shopify_pending_installs.organization_id,
-                              excluded.organization_id),
-       match_method       = case
+       shop_name                = excluded.shop_name,
+       currency                 = excluded.currency,
+       access_token             = excluded.access_token,
+       refresh_token            = excluded.refresh_token,
+       access_token_expires_at  = excluded.access_token_expires_at,
+       refresh_token_expires_at = excluded.refresh_token_expires_at,
+       webhook_secret           = excluded.webhook_secret,
+       scopes                   = excluded.scopes,
+       api_version              = excluded.api_version,
+       installed_by_email       = excluded.installed_by_email,
+       organization_id          = coalesce(
+                                    integrations.shopify_pending_installs.organization_id,
+                                    excluded.organization_id),
+       match_method             = case
                               when integrations.shopify_pending_installs.organization_id is not null
                                 then integrations.shopify_pending_installs.match_method
                               else excluded.match_method
@@ -158,6 +165,9 @@ export async function savePendingInstall({
       shopName,
       currency,
       accessToken,
+      refreshToken,
+      accessTokenExpiresAt,
+      refreshTokenExpiresAt,
       webhookSecret,
       scopes,
       apiVersion,
@@ -224,6 +234,7 @@ export async function markUninstalled(shopDomain) {
     `update integrations.shopify_pending_installs
         set status = 'uninstalled',
             access_token = '',
+            refresh_token = '',
             uninstalled_at = now(),
             updated_at = now()
       where shop_domain = $1`,
