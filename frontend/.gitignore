@@ -34,3 +34,5 @@ database.sqlite
 # Python bytecode from the OMS patch files in backend/
 __pycache__/
 *.pyc
+.vercel
+.env*

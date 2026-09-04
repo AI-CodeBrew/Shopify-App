@@ -1,93 +1,36 @@
-# FynkTech AI - OMS connector for Shopify
-# Docs: https://shopify.dev/docs/apps/tools/cli/configuration
-#
-# This app exists to do one job: on install, capture the store's Admin API
-# credentials and hand them to the FynkTech OMS so the merchant only has to
-# press "Connect" once. See README-OMS.md.
-#
-# NOTE: `shopify app config link` overwrites this file with whatever Shopify
-# currently holds for the app. Commit before running it, and diff afterwards -
-# it silently replaced the scope list below with a 3-scope default once.
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "7590f0304311e258480108f37b900604"
+client_id = "b4106ce9be97bb8e2ac245470404d0d8"
 name = "FynkTech AI"
-handle = "fynktech-ai"
-application_url = "https://REPLACE-ME.example.com"
-embedded = true
-
-[access_scopes]
-# Grouped by the OMS module that consumes it. Anything marked PROTECTED needs
-# an explicit approval request in the Dev Dashboard before the App Store
-# listing can go live - see README-OMS.md "Protected scopes".
-#
-# Keep SCOPES in .env byte-identical to this list; `npm run oms:doctor` fails
-# if the two drift.
-scopes = """
-read_orders,
-write_orders,
-read_all_orders,
-read_draft_orders,
-write_draft_orders,
-read_order_edits,
-write_order_edits,
-read_fulfillments,
-write_fulfillments,
-read_assigned_fulfillment_orders,
-write_assigned_fulfillment_orders,
-read_merchant_managed_fulfillment_orders,
-write_merchant_managed_fulfillment_orders,
-read_third_party_fulfillment_orders,
-write_third_party_fulfillment_orders,
-read_inventory,
-write_inventory,
-read_locations,
-read_returns,
-write_returns,
-read_products,
-write_products,
-read_customers,
-write_customers,
-read_shipping,
-write_shipping,
-read_price_rules,
-read_discounts,
-read_shopify_payments_payouts,
-read_shopify_payments_disputes
-"""
-
-# Merchant-facing declaration so the OAuth grant screen explains *why* each
-# family of data is requested rather than showing a wall of 30 permissions.
-optional_scopes = [ ]
-
-[auth]
-# The app mounts OAuth at authPathPrefix "/auth" (app/shopify.server.js), so
-# /auth/callback is the one that actually matters. The other two are kept for
-# the older paths some Shopify tooling still probes.
-redirect_urls = [
-  "https://REPLACE-ME.example.com/auth/callback",
-  "https://REPLACE-ME.example.com/auth/shopify/callback",
-  "https://REPLACE-ME.example.com/api/auth/callback"
-]
+application_url = "https://fynk-tech-ai.vercel.app"
+embedded = false
 
 [webhooks]
 api_version = "2026-10"
 
-  # Lifecycle: keeps the OMS-side credential row honest.
   [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
   uri = "/webhooks/app/uninstalled"
+  topics = [ "app/uninstalled" ]
 
   [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
+  topics = [ "app/scopes_update" ]
 
-  # Mandatory for App Store distribution. Shopify rejects the listing without
-  # all three, and it verifies them during review.
   [[webhooks.subscriptions]]
-  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
   uri = "/webhooks/compliance"
+  compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_assigned_fulfillment_orders,read_customers,read_discounts,read_draft_orders,read_fulfillments,read_inventory,read_locations,read_merchant_managed_fulfillment_orders,read_order_edits,read_orders,read_price_rules,read_products,read_returns,read_shipping,read_shopify_payments_disputes,read_shopify_payments_payouts,read_third_party_fulfillment_orders,write_assigned_fulfillment_orders,write_customers,write_draft_orders,write_fulfillments,write_inventory,write_merchant_managed_fulfillment_orders,write_order_edits,write_orders,write_products,write_returns,write_shipping,write_third_party_fulfillment_orders"
+optional_scopes = [ ]
+
+[auth]
+redirect_urls = [
+  "https://fynk-tech-ai.vercel.app/auth/callback",
+  "https://fynk-tech-ai.vercel.app/auth/shopify/callback",
+  "https://fynk-tech-ai.vercel.app/api/auth/callback"
+]
 
 [build]
-# `include_config_on_deploy` was removed by the CLI - every app now includes
-# its configuration on deploy, so the flag no longer exists.
 automatically_update_urls_on_dev = true

@@ -1,3 +1,4 @@
+import re
 import uuid
 
 import asyncpg
@@ -7,9 +8,85 @@ from .. import shopify_client
 from ..auth import AuthContext, require_org
 from ..config import settings
 from ..db import get_pool
-from ..schemas import ConnectResult, PendingStatus
+from ..schemas import ConnectResult, PendingStatus, StartInstall, StartInstallResult
 
 router = APIRouter(prefix="/api/integrations/shopify", tags=["shopify"])
+
+_SHOP_DOMAIN_RE = re.compile(r"^[a-z0-9][a-z0-9-]*\.myshopify\.com$")
+
+
+@router.post("/start", response_model=StartInstallResult, status_code=status.HTTP_200_OK)
+async def start_install(payload: StartInstall, ctx: AuthContext = Depends(require_org)) -> StartInstallResult:
+    """Reserve a shop for this organization *before* the merchant leaves for
+    Shopify, so the install this kicks off can be matched deterministically
+    on the way back - no guessing by email required.
+
+    Writes a pre-assigned row into integrations.shopify_pending_installs.
+    ../frontend's auth/callback route (savePendingInstall, on:conflict
+    shop_domain) preserves organization_id if one is already set here, so
+    this row's org "wins" over the auth callback's own (now unused)
+    organization_id=null default.
+    """
+    shop_domain = payload.shop_domain.strip().lower()
+    if not _SHOP_DOMAIN_RE.match(shop_domain):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Enter a valid *.myshopify.com store domain.",
+        )
+
+    pool = get_pool()
+    org_id = uuid.UUID(ctx.organization_id)
+
+    clash = await pool.fetchval(
+        "select 1 from integrations.shopify_connections where shop_domain = $1 and organization_id != $2",
+        shop_domain,
+        org_id,
+    )
+    if clash:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This Shopify store is already connected to another organization.",
+        )
+
+    try:
+        await pool.execute(
+            """
+            insert into integrations.shopify_pending_installs
+                (shop_domain, organization_id, match_method, status)
+            values ($1, $2, 'claimed', 'pending')
+            on conflict (shop_domain) do update set
+                organization_id = coalesce(
+                                    integrations.shopify_pending_installs.organization_id,
+                                    excluded.organization_id),
+                match_method    = case
+                                     when integrations.shopify_pending_installs.organization_id is not null
+                                       then integrations.shopify_pending_installs.match_method
+                                     else excluded.match_method
+                                   end,
+                status          = 'pending',
+                uninstalled_at  = null,
+                updated_at      = now()
+            """,
+            shop_domain,
+            org_id,
+        )
+    except asyncpg.UndefinedTableError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "integrations.shopify_pending_installs does not exist. Apply the OMS "
+                "migration, or run `npm run oms:bootstrap` from ../frontend."
+            ),
+        ) from exc
+
+    if not settings.shopify_app_url:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="SHOPIFY_APP_URL is not configured on this service.",
+        )
+
+    install_url = f"{settings.shopify_app_url.rstrip('/')}/auth?shop={shop_domain}"
+    return StartInstallResult(install_url=install_url)
 
 
 async def _fetch_pending(pool, organization_id: uuid.UUID):

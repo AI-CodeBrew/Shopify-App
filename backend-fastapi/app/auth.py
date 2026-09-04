@@ -1,7 +1,10 @@
+import ssl
 from dataclasses import dataclass
 
+import certifi
 import jwt
 from fastapi import Header, HTTPException, status
+from jwt import PyJWKClient
 
 from .config import settings
 from .db import get_pool
@@ -23,12 +26,48 @@ def _claim(payload: dict, key: str) -> str | None:
     return app_meta.get(key) or user_meta.get(key)
 
 
+_jwk_client: PyJWKClient | None = None
+
+
+def _get_jwk_client() -> PyJWKClient:
+    # Mirrors ../../Fynktech-oms/backend/core/jwt_utils.py exactly - same
+    # reasoning applies here: newer Supabase projects sign JWTs
+    # asymmetrically (ES256/RS256) and publish a JWKS endpoint instead of a
+    # shared secret. Cached in-process; certifi's CA bundle avoids the
+    # platform SSL verify issues plain urllib sometimes hits on JWKS fetch.
+    global _jwk_client
+    if _jwk_client is None:
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        _jwk_client = PyJWKClient(
+            f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json",
+            cache_keys=True,
+            ssl_context=ssl_context,
+        )
+    return _jwk_client
+
+
 def _decode(token: str) -> dict:
     try:
+        header = jwt.get_unverified_header(token)
+    except jwt.PyJWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid or expired token: {exc}",
+        ) from exc
+
+    try:
+        if header.get("alg") == "HS256":
+            return jwt.decode(
+                token,
+                settings.supabase_jwt_secret,
+                algorithms=["HS256"],
+                options={"verify_aud": False},
+            )
+        signing_key = _get_jwk_client().get_signing_key_from_jwt(token)
         return jwt.decode(
             token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
+            signing_key.key,
+            algorithms=[header["alg"]],
             options={"verify_aud": False},
         )
     except jwt.PyJWTError as exc:

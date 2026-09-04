@@ -13,6 +13,14 @@ class PendingStatus(BaseModel):
     scope_count: int | None = None
 
 
+class StartInstall(BaseModel):
+    shop_domain: str
+
+
+class StartInstallResult(BaseModel):
+    install_url: str
+
+
 class ConnectResult(BaseModel):
     id: int
     organization_id: str

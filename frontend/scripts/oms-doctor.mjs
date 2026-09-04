@@ -29,9 +29,9 @@ record(
 // capture in dev has different permissions than the one merchants grant.
 try {
   const toml = readFileSync(resolve(here, "../shopify.app.toml"), "utf8");
-  const block = toml.match(/scopes\s*=\s*"""([\s\S]*?)"""/);
+  const block = toml.match(/scopes\s*=\s*"""([\s\S]*?)"""|scopes\s*=\s*"([^"]*)"/);
   const tomlScopes = new Set(
-    (block?.[1] ?? "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean),
+    (block?.[1] ?? block?.[2] ?? "").split(/[\s,]+/).map((s) => s.trim()).filter(Boolean),
   );
   const envScopes = new Set(
     (process.env.SCOPES ?? "").split(",").map((s) => s.trim()).filter(Boolean),
