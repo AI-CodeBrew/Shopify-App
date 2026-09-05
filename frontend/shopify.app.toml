@@ -3,7 +3,7 @@
 client_id = "b4106ce9be97bb8e2ac245470404d0d8"
 name = "FynkTech AI"
 application_url = "https://fynk-tech-ai.vercel.app"
-embedded = false
+embedded = true
 
 [webhooks]
 api_version = "2026-10"
