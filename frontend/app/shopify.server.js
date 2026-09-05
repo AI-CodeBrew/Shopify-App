@@ -50,7 +50,15 @@ const shopify = shopifyApp({
      * the embedded app surfaces the error and offers a retry instead.
      */
     afterAuth: async ({ session, admin }) => {
-      await shopify.registerWebhooks({ session });
+      try {
+        // shopify.app.toml also declares these same topics declaratively
+        // (synced to Shopify on every `deploy`), so this call can now hit a
+        // duplicate-registration conflict where it previously didn't - never
+        // let that crash the whole auth flow.
+        await shopify.registerWebhooks({ session });
+      } catch (err) {
+        console.error(`[oms] registerWebhooks failed for ${session.shop}:`, err.message);
+      }
 
       if (!isOmsConfigured()) {
         console.warn("[oms] OMS_DATABASE_URL unset - install not staged for", session.shop);
