@@ -85,7 +85,12 @@ async def start_install(payload: StartInstall, ctx: AuthContext = Depends(requir
             detail="SHOPIFY_APP_URL is not configured on this service.",
         )
 
-    install_url = f"{settings.shopify_app_url.rstrip('/')}/auth?shop={shop_domain}"
+    # NOT /auth?shop=... - that path is where Shopify's own OAuth dance
+    # redirects *to* (authPathPrefix in shopify.server.js), not a valid
+    # external entry point for the embedded/token-exchange flow. The real
+    # entry point is the app's own root, which redirects to /app?shop=...
+    # and lets authenticate.admin bootstrap a fresh install correctly.
+    install_url = f"{settings.shopify_app_url.rstrip('/')}/?shop={shop_domain}"
     return StartInstallResult(install_url=install_url)
 
 
