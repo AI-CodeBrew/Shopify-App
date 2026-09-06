@@ -99,7 +99,7 @@ export default function Privacy() {
       <h2 style={styles.h2}>Contact</h2>
       <p style={styles.p}>
         Questions about this policy or your data can be sent to{" "}
-        <a href="mailto:support@fynktech.com">support@fynktech.com</a>.
+        <a href="mailto:fynktech@gmail.com">fynktech@gmail.com</a>.
       </p>
     </div>
   );
