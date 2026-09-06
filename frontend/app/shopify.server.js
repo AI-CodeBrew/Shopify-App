@@ -24,12 +24,15 @@ const shopify = shopifyApp({
   sessionStorage: new PrismaSessionStorage(prisma),
   distribution: AppDistribution.AppStore,
   future: {
-    // Deliberately OFF. Expiring offline tokens rotate every 24h behind a
-    // refresh token that only this app holds. The OMS stores one static
-    // `access_token` per store (integrations.ShopifyConnection) and has no
-    // refresh path, so every sync would start failing a day after connect.
-    // Permanent offline tokens are what the OMS's model actually supports.
-    expiringOfflineAccessTokens: false,
+    // ON. Shopify requires expiring offline tokens for public apps as of
+    // April 1 2026 (already past) - permanent tokens are deprecated and
+    // Shopify's own Monitoring dashboard flags their continued use. The
+    // refresh_token this produces is captured in afterAuth below and staged
+    // alongside the access_token so backend-fastapi can refresh it
+    // independently - see backend-fastapi/app/shopify_client.py::
+    // refresh_access_token and backend-fastapi/scripts/refresh_tokens.py,
+    // which already exist for exactly this.
+    expiringOfflineAccessTokens: true,
   },
   hooks: {
     /**
@@ -92,6 +95,14 @@ const shopify = shopifyApp({
           shopName: shop.name || "",
           currency: shop.currencyCode || "",
           accessToken: session.accessToken,
+          // Present because expiringOfflineAccessTokens is on above. Absent
+          // (undefined) session.expires/refreshToken/refreshTokenExpires
+          // would mean Shopify handed back a non-expiring token instead -
+          // shouldn't happen with the flag on, but savePendingInstall's
+          // defaults handle it either way.
+          refreshToken: session.refreshToken || "",
+          accessTokenExpiresAt: session.expires ?? null,
+          refreshTokenExpiresAt: session.refreshTokenExpires ?? null,
           // What the OMS stores as `webhook_secret`: Shopify signs webhook
           // payloads with the app's shared secret, so this app's own secret is
           // exactly the key the OMS needs to verify them.
