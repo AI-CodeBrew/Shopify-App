@@ -32,7 +32,13 @@ function getPool() {
       connectionString: url,
       max: 4,
       idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 10_000,
+      // Short on purpose: a bad credential/circuit-breaker on the Supabase
+      // pooler side can otherwise hang for many seconds per attempt, which -
+      // stacked with Vercel's own function time limit - turns into a blank,
+      // response-less page instead of the error banner below. Fail fast so
+      // there's always time left to render something.
+      connectionTimeoutMillis: 4_000,
+      query_timeout: 4_000,
       // Supabase terminates TLS with a chain `pg` won't verify out of the box;
       // the pooler hostname in the connection string is what we trust here.
       ssl: { rejectUnauthorized: false },
@@ -64,6 +70,22 @@ export class OmsSchemaMissingError extends Error {
 
 export function isOmsConfigured() {
   return Boolean(process.env.OMS_DATABASE_URL);
+}
+
+/**
+ * Bounds how long a caller (an embedded page's loader) will wait on any OMS
+ * database call. The pool's own connectionTimeoutMillis/query_timeout above
+ * already fail fast, but this is a second, independent ceiling so a page
+ * always has time left to render an error banner instead of going blank -
+ * e.g. if Vercel is mid cold-start on top of a slow query.
+ */
+export function withOmsTimeout(promise, ms = 6_000) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("FynkTech OMS did not respond in time.")), ms),
+    ),
+  ]);
 }
 
 async function query(text, params) {

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData, useRevalidator } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 import {
   claimPendingInstall,
   getPendingInstall,
   isOmsConfigured,
+  withOmsTimeout,
 } from "../oms.server";
 
 // eslint-disable-next-line no-undef
@@ -20,7 +21,7 @@ export const loader = async ({ request }) => {
   }
 
   try {
-    const install = await getPendingInstall(session.shop);
+    const install = await withOmsTimeout(getPendingInstall(session.shop));
     if (!install) {
       // afterAuth staged nothing - almost always a transient DB error during
       // install. Re-running OAuth is the fix, so say so rather than showing an
@@ -30,7 +31,12 @@ export const loader = async ({ request }) => {
     return {
       shop: session.shop,
       omsUrl,
-      state: install.organization_id ? "linked" : "unassigned",
+      state:
+        install.status === "connected"
+          ? "connected"
+          : install.organization_id
+            ? "linked"
+            : "unassigned",
       install: {
         shopName: install.shop_name,
         currency: install.currency,
@@ -80,7 +86,7 @@ export const action = async ({ request }) => {
   }
 };
 
-function renderStatusBanner({ state, install, error }) {
+function renderStatusBanner({ state, install, error, onRetry, retrying }) {
   if (state === "misconfigured") {
     return (
       <s-banner tone="critical" heading="App is not configured">
@@ -94,7 +100,10 @@ function renderStatusBanner({ state, install, error }) {
   if (state === "error") {
     return (
       <s-banner tone="critical" heading="Could not reach FynkTech OMS">
-        <s-paragraph>{error}</s-paragraph>
+        <s-paragraph>{error || "Something went wrong talking to FynkTech OMS."}</s-paragraph>
+        <s-button onClick={onRetry} {...(retrying ? { loading: true } : {})}>
+          Try again
+        </s-button>
       </s-banner>
     );
   }
@@ -103,6 +112,17 @@ function renderStatusBanner({ state, install, error }) {
       <s-banner tone="warning" heading="Credentials were not captured">
         <s-paragraph>
           Reinstalling the app will retry. If this persists, contact FynkTech support.
+        </s-paragraph>
+      </s-banner>
+    );
+  }
+  if (state === "connected") {
+    return (
+      <s-banner tone="success" heading={`Connected to ${install.organizationName}`}>
+        <s-paragraph>
+          This store is connected and syncing with FynkTech OMS. Press{" "}
+          <s-text fontWeight="bold">Open FynkTech OMS</s-text> above to manage orders,
+          inventory and other settings.
         </s-paragraph>
       </s-banner>
     );
@@ -132,6 +152,7 @@ function renderStatusBanner({ state, install, error }) {
 export default function Index() {
   const { shop, omsUrl, state, install, error } = useLoaderData();
   const fetcher = useFetcher();
+  const revalidator = useRevalidator();
   const shopifyBridge = useAppBridge();
   const [email, setEmail] = useState("");
 
@@ -143,12 +164,18 @@ export default function Index() {
 
   const claim = () => fetcher.submit({ email }, { method: "POST" });
   const linked = state === "linked";
-  // `linked` here means the pending row already has an organization_id (via
+  const connected = state === "connected";
+  // `linked` means the pending row already has an organization_id (via
   // backend-fastapi's POST /start pre-assignment, or afterAuth's email
   // match) - not that the OMS has finalized the connection yet. Appending
   // ?connected=1 makes the OMS's existing auto-finalize effect run the
   // instant the merchant lands there, so this is still a single click.
-  const omsHref = linked && omsUrl ? `${omsUrl}/integrations/shopify?connected=1` : null;
+  // `connected` means the OMS already finalized this store on a previous
+  // visit - no need for that query param again, just open the OMS.
+  const omsHref =
+    omsUrl && (linked || connected)
+      ? `${omsUrl}/integrations/shopify${linked ? "?connected=1" : ""}`
+      : null;
 
   return (
     <s-page heading="FynkTech OMS connection">
@@ -159,7 +186,13 @@ export default function Index() {
       )}
 
       <s-section>
-        {renderStatusBanner({ state, install, error })}
+        {renderStatusBanner({
+          state,
+          install,
+          error,
+          onRetry: () => revalidator.revalidate(),
+          retrying: revalidator.state !== "idle",
+        })}
       </s-section>
 
       <s-section heading="Store">
