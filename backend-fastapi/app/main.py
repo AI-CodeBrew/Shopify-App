@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,12 +8,31 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .db import close_pool, connect_pool, get_pool
 from .routers import pending, webhooks
+from .token_refresh import REFRESH_INTERVAL_SECONDS, refresh_due_connections
+
+logger = logging.getLogger("uvicorn.error")
+
+
+async def _refresh_loop() -> None:
+    """Runs immediately on startup, then every REFRESH_INTERVAL_SECONDS.
+
+    Single machine, single uvicorn worker (see Dockerfile) - this task runs
+    exactly once, no external cron/scheduler needed.
+    """
+    while True:
+        try:
+            await refresh_due_connections(get_pool())
+        except Exception:  # noqa: BLE001 - a bad cycle must not kill the loop
+            logger.exception("[refresh] background refresh cycle failed")
+        await asyncio.sleep(REFRESH_INTERVAL_SECONDS)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_pool()
+    refresh_task = asyncio.create_task(_refresh_loop())
     yield
+    refresh_task.cancel()
     await close_pool()
 
 
