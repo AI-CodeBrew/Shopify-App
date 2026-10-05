@@ -1,19 +1,36 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useRevalidator } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+import { apiVersion, authenticate } from "../shopify.server";
 import {
   claimPendingInstall,
   getPendingInstall,
   isOmsConfigured,
+  stageInstall,
   withOmsTimeout,
 } from "../oms.server";
 
 // eslint-disable-next-line no-undef
 const OMS_URL = () => (process.env.OMS_APP_URL || "").replace(/\/+$/, "");
 
+/**
+ * The staged row for this shop, staging it first if there is none usable.
+ *
+ * Reaching this loader means the app is installed and we hold a live token,
+ * so a missing row - or one whose token was blanked by an earlier uninstall,
+ * or only reserved by the OMS and never filled - is something to repair here,
+ * not to report. See stageInstall for why afterAuth cannot be relied on alone.
+ */
+async function loadOrStageInstall(session, admin) {
+  const install = await getPendingInstall(session.shop);
+  if (install?.access_token) return install;
+
+  await stageInstall({ session, admin, apiVersion });
+  return getPendingInstall(session.shop);
+}
+
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const omsUrl = OMS_URL();
 
   if (!isOmsConfigured()) {
@@ -21,11 +38,8 @@ export const loader = async ({ request }) => {
   }
 
   try {
-    const install = await withOmsTimeout(getPendingInstall(session.shop));
+    const install = await withOmsTimeout(loadOrStageInstall(session, admin), 9_000);
     if (!install) {
-      // afterAuth staged nothing - almost always a transient DB error during
-      // install. Re-running OAuth is the fix, so say so rather than showing an
-      // empty page.
       return { shop: session.shop, omsUrl, state: "not_staged", install: null };
     }
     return {
@@ -48,6 +62,9 @@ export const loader = async ({ request }) => {
       },
     };
   } catch (err) {
+    // admin.graphql throws a Response when Shopify rejects the stored token;
+    // it carries the headers that make App Bridge re-authenticate and retry.
+    if (err instanceof Response) throw err;
     return {
       shop: session.shop,
       omsUrl,
@@ -111,8 +128,12 @@ function renderStatusBanner({ state, install, error, onRetry, retrying }) {
     return (
       <s-banner tone="warning" heading="Credentials were not captured">
         <s-paragraph>
-          Reinstalling the app will retry. If this persists, contact FynkTech support.
+          We could not hand this store&apos;s details to FynkTech OMS yet. Try again;
+          if this persists, contact FynkTech support.
         </s-paragraph>
+        <s-button onClick={onRetry} {...(retrying ? { loading: true } : {})}>
+          Try again
+        </s-button>
       </s-banner>
     );
   }
@@ -238,6 +259,15 @@ export default function Index() {
             >
               Link store
             </s-button>
+            {omsUrl && (
+              <s-paragraph>
+                Use the email you sign in to FynkTech OMS with.{" "}
+                <s-link href={omsUrl} target="_blank">
+                  Open FynkTech OMS
+                </s-link>{" "}
+                to check your account.
+              </s-paragraph>
+            )}
           </s-stack>
         </s-section>
       )}

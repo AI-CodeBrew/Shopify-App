@@ -205,9 +205,10 @@ async def connect_pending(ctx: AuthContext = Depends(require_org)) -> ConnectRes
                     (organization_id, shop_domain, shop_name, access_token, refresh_token,
                      access_token_expires_at, refresh_token_expires_at, webhook_secret,
                      currency, is_connected, webhooks_active, webhook_ids, auto_sync_orders,
-                     created_at, updated_at)
+                     push_status_to_shopify, created_at, updated_at)
                 values
-                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $11::jsonb, true, now(), now())
+                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, $10, $11::jsonb, true,
+                     false, now(), now())
                 on conflict (organization_id) do update set
                     shop_domain              = excluded.shop_domain,
                     shop_name                = excluded.shop_name,
@@ -234,11 +235,15 @@ async def connect_pending(ctx: AuthContext = Depends(require_org)) -> ConnectRes
                 shop_info["currency"],
                 bool(webhook_ids) and not warnings,
                 webhook_ids,
-                # NOTE: auto_sync_orders has no DB default and the real
-                # ShopifyConnection Django model isn't in this repo, so `true`
-                # here is an assumption for a fresh connect - only applied on
-                # INSERT (the ON CONFLICT branch above doesn't touch it, so an
-                # existing preference on reconnect is preserved either way).
+                # NOTE: auto_sync_orders and push_status_to_shopify are NOT NULL
+                # with no database default - Django's `default=` lives in the
+                # model (Fynktech-oms/backend/integrations/models.py), not in
+                # Postgres - so every such column must be supplied here, with
+                # the model's own default. Postgres checks NOT NULL before it
+                # resolves ON CONFLICT, so leaving one out fails reconnects
+                # too, not just first connects. The values only apply on
+                # INSERT (the ON CONFLICT branch above doesn't touch them, so
+                # an existing preference on reconnect is preserved).
             )
 
             await conn.execute(

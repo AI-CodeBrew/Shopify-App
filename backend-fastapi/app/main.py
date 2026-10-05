@@ -2,8 +2,9 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .config import settings
 from .db import close_pool, connect_pool, get_pool
@@ -37,6 +38,23 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="FynkTech AI - OMS connector (FastAPI)", lifespan=lifespan)
+
+
+# Registered before CORSMiddleware on purpose, so it sits inside it. An
+# unhandled exception otherwise becomes Starlette's bare 500, produced outside
+# CORSMiddleware and so without CORS headers - the OMS's browser then reports
+# an opaque "Failed to fetch" instead of an error the page can show.
+@app.middleware("http")
+async def _unhandled_errors_as_json(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception:  # noqa: BLE001 - logged in full, reported generically
+        logger.exception("[error] unhandled exception on %s %s", request.method, request.url.path)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "The Shopify connector hit an unexpected error. Please try again."},
+        )
+
 
 if settings.cors_origin_list:
     app.add_middleware(

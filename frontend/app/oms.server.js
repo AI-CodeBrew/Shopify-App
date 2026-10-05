@@ -201,6 +201,71 @@ export async function savePendingInstall({
   return rows[0];
 }
 
+/**
+ * Read the shop's identity with the token Shopify just handed us and stage it
+ * for the OMS.
+ *
+ * Shared by the afterAuth hook and by the embedded page's own loader, which
+ * calls it whenever it finds nothing staged. afterAuth alone is not enough:
+ * the library runs it once per session token, and a second loader
+ * authenticating in parallel is let through without waiting for it - so on a
+ * first install the page can be read before the row is written, and if the
+ * hook fails nothing re-runs it while the session stays valid.
+ *
+ * Throws on failure; each caller decides whether that is fatal.
+ */
+export async function stageInstall({ session, admin, apiVersion = "" }) {
+  const response = await admin.graphql(
+    `#graphql
+      query FynkTechShopIdentity {
+        shop {
+          name
+          email
+          myshopifyDomain
+          currencyCode
+        }
+      }`,
+  );
+  const body = await response.json();
+  const shop = body?.data?.shop ?? {};
+
+  // The store owner's account email. Matching it against Supabase
+  // auth.users is the only signal we have at install time for *which*
+  // OMS tenant this store belongs to, when it wasn't already
+  // pre-assigned by the OMS's own Connect Shopify button.
+  const email = shop.email || "";
+  const match = email ? await findOrganizationByEmail(email) : null;
+
+  const row = await savePendingInstall({
+    shopDomain: shop.myshopifyDomain || session.shop,
+    shopName: shop.name || "",
+    currency: shop.currencyCode || "",
+    accessToken: session.accessToken,
+    // Present because expiringOfflineAccessTokens is on. Absent (undefined)
+    // session.expires/refreshToken/refreshTokenExpires would mean Shopify
+    // handed back a non-expiring token instead - shouldn't happen with the
+    // flag on, but savePendingInstall's defaults handle it either way.
+    refreshToken: session.refreshToken || "",
+    accessTokenExpiresAt: session.expires ?? null,
+    refreshTokenExpiresAt: session.refreshTokenExpires ?? null,
+    // What the OMS stores as `webhook_secret`: Shopify signs webhook
+    // payloads with the app's shared secret, so this app's own secret is
+    // exactly the key the OMS needs to verify them.
+    webhookSecret: process.env.SHOPIFY_API_SECRET || "",
+    scopes: session.scope || "",
+    apiVersion,
+    installedByEmail: email,
+    organizationId: match?.organizationId ?? null,
+    matchMethod: match ? "email" : "unassigned",
+  });
+
+  console.log(
+    `[oms] staged install for ${session.shop}`,
+    match ? `-> org ${match.organizationName}` : "-> unassigned (awaiting claim)",
+  );
+  return row;
+}
+
 export async function getPendingInstall(shopDomain) {
   const { rows } = await query(
     `select p.*, o.name as organization_name
