@@ -8,9 +8,9 @@ import { isOmsConfigured, purgeShop } from "../oms.server";
  * them, and Shopify sends signed test payloads to this URL.
  *
  * This app deliberately stores no buyer data: the only thing it persists is a
- * store's Admin API credentials plus the installing staff member's email. So
- * the two customer topics have nothing to erase or disclose, and only
- * shop/redact does real work.
+ * store's Admin API credentials, shop contact email (for org match), and
+ * optionally the OMS claim email. So the two customer topics have nothing to
+ * erase or disclose, and only shop/redact does real work.
  */
 export const action = async ({ request }) => {
   const { topic, shop, payload } = await authenticate.webhook(request);

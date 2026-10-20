@@ -19,14 +19,13 @@ export default function Privacy() {
   return (
     <div style={styles.page}>
       <h1 style={styles.h1}>Privacy Policy</h1>
-      <p style={styles.updated}>Last updated: September 2026</p>
+      <p style={styles.updated}>Last updated: October 2026</p>
 
       <p style={styles.p}>
         Connector ("the app") connects a Shopify store to a merchant's
-        FynkTech OMS account, so that order, fulfilment, inventory, returns
-        and finance data can be kept in sync between the two systems. This
-        page describes what data the app collects, why, and how it's
-        handled.
+        FynkTech OMS account so that store data can be kept in sync between
+        the two systems. This page describes what data the app collects, why,
+        and how it's handled.
       </p>
 
       <h2 style={styles.h2}>Information we collect</h2>
@@ -39,24 +38,50 @@ export default function Privacy() {
         </li>
         <li>The list of permissions (scopes) granted</li>
         <li>
-          The email address of the staff member who installed the app, used
-          to match the install to the correct FynkTech OMS organization
+          The Shopify store contact email (from your shop profile), used as
+          one signal to match the install to a FynkTech OMS organization when
+          possible
+        </li>
+        <li>
+          Optionally, the email address of the FynkTech OMS user who claims
+          or completes the connection in FynkTech OMS (for example after
+          signing in and linking the store)
         </li>
       </ul>
       <p style={styles.p}>
-        The app itself does not read or store your customers' personal
-        data directly. The access token lets your FynkTech OMS account sync
-        order records (which may include customer names, addresses, and
-        order details) - that data is governed by your own organization's
-        use of FynkTech OMS, under your control.
+        Connector does not store Shopify customer (buyer) profiles as its own
+        primary records. The access token allows your FynkTech OMS account to
+        sync store data that may include customer names, addresses, and order
+        details. That synced data is held in your organization's FynkTech OMS
+        account under your control and is governed by your use of FynkTech OMS.
+      </p>
+
+      <h2 style={styles.h2}>Permissions we request</h2>
+      <p style={styles.p}>
+        Depending on what you approve at install time, Connector may request
+        access needed for OMS sync, including (read and/or write where
+        applicable):
+      </p>
+      <ul style={styles.ul}>
+        <li>Orders, draft orders, order edits, and related order history</li>
+        <li>Customers</li>
+        <li>Products, files, and inventory / locations</li>
+        <li>Fulfilments and fulfilment orders</li>
+        <li>Returns and shipping</li>
+        <li>Discounts and price rules</li>
+        <li>Shopify Payments payouts and disputes (read)</li>
+      </ul>
+      <p style={styles.p}>
+        We only use these permissions to operate the connection between your
+        Shopify store and your FynkTech OMS account.
       </p>
 
       <h2 style={styles.h2}>How we use this information</h2>
       <p style={styles.p}>
-        Solely to operate the connection between your Shopify store and your
-        FynkTech OMS account: importing and syncing orders, fulfilment
-        orders, inventory levels, returns, and finance records. We do not
-        use this data for advertising, profiling, or any purpose unrelated
+        Solely to operate that connection: importing and syncing orders,
+        customers, products, files, inventory, fulfilments, returns, shipping,
+        discounts, and related finance/payment records your OMS needs. We do
+        not use this data for advertising, profiling, or any purpose unrelated
         to that sync.
       </p>
 
@@ -73,18 +98,34 @@ export default function Privacy() {
       <h2 style={styles.h2}>Data sharing</h2>
       <p style={styles.p}>
         We do not sell or share your data with third parties. Data collected
-        by this app stays within FynkTech's own systems - this app and the
+        by this app stays within FynkTech's own systems — this app and the
         FynkTech OMS your organization uses.
       </p>
 
       <h2 style={styles.h2}>Data retention and deletion</h2>
       <p style={styles.p}>
-        Your access token and staged install data are retained for as long
-        as the app remains installed on your store. If you uninstall the
-        app, the stored access token is immediately invalidated, and all
-        associated data is permanently deleted within 48 hours, in line with
-        Shopify's mandatory data-protection requirements.
+        While the app is installed, we retain the access token, refresh token,
+        and staged install metadata needed to keep the connection working.
       </p>
+      <p style={styles.p}>When you uninstall the app:</p>
+      <ul style={styles.ul}>
+        <li>
+          Shopify revokes the app's access. We immediately clear the stored
+          access and refresh tokens and remove local install sessions for your
+          shop.
+        </li>
+        <li>
+          Within 48 hours, Shopify's shop/redact process triggers deletion of
+          the Connector's staged install record for your shop (shop domain and
+          related install metadata held for connecting the app).
+        </li>
+        <li>
+          Business data already synced into your FynkTech OMS organization
+          (for example orders already imported) remains in that OMS account
+          under your organization's control. You can remove or request deletion
+          of that OMS data from within FynkTech OMS or by contacting us.
+        </li>
+      </ul>
 
       <h2 style={styles.h2}>Security</h2>
       <p style={styles.p}>
@@ -97,7 +138,8 @@ export default function Privacy() {
       <p style={styles.p}>
         You can request details of the data we hold about your store, or
         request its deletion, at any time by contacting us (see below), or
-        simply by uninstalling the app.
+        by uninstalling the app (which clears Connector tokens and, within
+        Shopify's required window, the staged install record).
       </p>
 
       <h2 style={styles.h2}>Changes to this policy</h2>
