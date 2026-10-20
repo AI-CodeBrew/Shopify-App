@@ -13,11 +13,9 @@ export const loader = async ({ request }) => {
 export default function App() {
   const { apiKey } = useLoaderData();
 
+  // Non-embedded: runs as a normal browser tab, not inside Shopify Admin.
   return (
-    <AppProvider embedded apiKey={apiKey}>
-      <s-app-nav>
-        <s-link href="/app">Connection</s-link>
-      </s-app-nav>
+    <AppProvider embedded={false} apiKey={apiKey}>
       <Outlet />
     </AppProvider>
   );

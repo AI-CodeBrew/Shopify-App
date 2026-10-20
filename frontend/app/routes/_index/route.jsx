@@ -1,10 +1,9 @@
 import { redirect } from "react-router";
 
-// Shopify lands here with ?shop=... when opening the embedded app from
-// admin - hand off to /app, which runs authenticate.admin and shows the
-// connection status page. Anyone else hitting the bare app URL directly
-// (not via Shopify or the OMS's Connect Shopify button) just gets sent to
-// the OMS instead of an empty page.
+// Non-embedded entry:
+// - Shopify / install links land here with ?shop=... → hand off to /app
+//   (authenticate.admin runs OAuth if needed, then shows connection status).
+// - Anyone else hitting the bare app URL is sent to the OMS home.
 export async function loader({ request }) {
   const url = new URL(request.url);
 

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useRevalidator } from "react-router";
-import { useAppBridge } from "@shopify/app-bridge-react";
 import { apiVersion, authenticate } from "../shopify.server";
 import {
   claimPendingInstall,
@@ -174,14 +173,16 @@ export default function Index() {
   const { shop, omsUrl, state, install, error } = useLoaderData();
   const fetcher = useFetcher();
   const revalidator = useRevalidator();
-  const shopifyBridge = useAppBridge();
   const [email, setEmail] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const isSubmitting = fetcher.state !== "idle";
 
   useEffect(() => {
-    if (fetcher.data?.ok) shopifyBridge.toast.show(fetcher.data.message);
-  }, [fetcher.data, shopifyBridge]);
+    if (fetcher.data?.ok) {
+      setSuccessMessage(fetcher.data.message || "Linked successfully.");
+    }
+  }, [fetcher.data]);
 
   const claim = () => fetcher.submit({ email }, { method: "POST" });
   const linked = state === "linked";
@@ -207,6 +208,11 @@ export default function Index() {
       )}
 
       <s-section>
+        {successMessage ? (
+          <s-banner tone="success" heading="Linked">
+            <s-paragraph>{successMessage}</s-paragraph>
+          </s-banner>
+        ) : null}
         {renderStatusBanner({
           state,
           install,

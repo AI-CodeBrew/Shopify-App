@@ -46,7 +46,7 @@ const shopify = shopifyApp({
      * Shopify button.
      *
      * Never throws. A failure to reach the OMS must not break the install -
-     * the embedded app surfaces the error and offers a retry instead.
+     * the app page surfaces the error and offers a retry instead.
      */
     afterAuth: async ({ session, admin }) => {
       try {
@@ -64,7 +64,7 @@ const shopify = shopifyApp({
         return;
       }
 
-      // Best-effort here: the embedded page's loader (routes/app._index.jsx)
+      // Best-effort here: the /app page loader (routes/app._index.jsx)
       // stages the install itself if this did not, so a failure is recovered
       // on the very next render rather than needing a reinstall.
       try {
