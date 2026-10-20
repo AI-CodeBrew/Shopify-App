@@ -147,12 +147,19 @@ async function authenticateAdmin(request) {
 
   let session = sessionId ? await sessionStorage.loadSession(sessionId) : undefined;
 
-  // Expired offline token with refresh — leave refresh to FastAPI; force re-auth
-  // if Shopify rejected and storage was cleared.
+  if (!shop && session?.shop) shop = session.shop;
+
+  // No session, or uninstall left a row without a token → full OAuth again.
   if (!session?.accessToken) {
-    if (!shop && session?.shop) shop = session.shop;
     if (!shop) {
       throw new Response("Missing shop parameter", { status: 400 });
+    }
+    if (session?.id) {
+      try {
+        await sessionStorage.deleteSession(session.id);
+      } catch {
+        /* ignore */
+      }
     }
     throw await beginAuth(request, shop);
   }
@@ -166,6 +173,35 @@ async function authenticateAdmin(request) {
     session,
     admin: createAdmin(session),
   };
+}
+
+/** True when Shopify rejected the offline token (e.g. after uninstall). */
+export function isShopifyUnauthorizedError(err) {
+  const msg = String(err?.message || err || "");
+  return (
+    msg.includes("401") ||
+    /unauthorized/i.test(msg) ||
+    /invalid api key or access token/i.test(msg)
+  );
+}
+
+/**
+ * Drop the stored offline session and restart OAuth so a revoked token
+ * (common after uninstall when the webhook didn't clear Prisma) cannot be reused.
+ */
+export async function forceReauth(request, shop, session) {
+  if (session?.id) {
+    try {
+      await sessionStorage.deleteSession(session.id);
+    } catch {
+      /* ignore */
+    }
+  }
+  const sanitized = api.utils.sanitizeShop(shop || session?.shop, true);
+  if (!sanitized) {
+    throw new Response("Missing shop parameter", { status: 400 });
+  }
+  throw await beginAuth(request, sanitized);
 }
 
 export const authenticate = {

@@ -3,15 +3,15 @@ import db from "../db.server";
 import { isOmsConfigured, markUninstalled } from "../oms.server";
 
 export const action = async ({ request }) => {
-  const { shop, session, topic } = await authenticate.webhook(request);
+  const { shop, topic } = await authenticate.webhook(request);
 
   console.log(`Received ${topic} webhook for ${shop}`);
 
-  // Webhook requests can trigger multiple times and after an app has already been uninstalled.
-  // If this webhook already ran, the session may have been deleted previously.
-  if (session) {
-    await db.session.deleteMany({ where: { shop } });
-  }
+  // Always wipe sessions for this shop. Do not gate on whether Shopify still
+  // returns a loadable session — after uninstall the webhook often has none,
+  // and skipping delete left a revoked token in Prisma that "reinstall"
+  // reused without OAuth → OMS finalize 401.
+  await db.session.deleteMany({ where: { shop } });
 
   // Tell the OMS the token it holds is dead. Best-effort: Shopify retries this
   // webhook, and throwing here would only turn a stale row into a failed

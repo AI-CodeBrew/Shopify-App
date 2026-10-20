@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useRevalidator } from "react-router";
-import { apiVersion, authenticate } from "../shopify.server";
+import {
+  apiVersion,
+  authenticate,
+  forceReauth,
+  isShopifyUnauthorizedError,
+} from "../shopify.server";
 import {
   claimPendingInstall,
   getPendingInstall,
@@ -13,19 +18,46 @@ import {
 const OMS_URL = () => (process.env.OMS_APP_URL || "").replace(/\/+$/, "");
 
 /**
- * The staged row for this shop, staging it first if there is none usable.
+ * Ensure pending install holds the *current* offline session token.
  *
- * Reaching this loader means the app is installed and we hold a live token,
- * so a missing row - or one whose token was blanked by an earlier uninstall,
- * or only reserved by the OMS and never filled - is something to repair here,
- * not to report. See stageInstall for why afterAuth cannot be relied on alone.
+ * After uninstall, Shopify revokes the token but Prisma may still have the
+ * old session (webhook missed). Reopening the app used to reuse that dead
+ * token and stage it again → OMS finalize 401. We probe Shopify first; on
+ * 401 we wipe the session and restart OAuth. We also restage whenever the
+ * pending row is missing, uninstalled, blank, or out of date vs the session.
  */
-async function loadOrStageInstall(session, admin) {
-  const install = await getPendingInstall(session.shop);
-  if (install?.access_token) return install;
+async function loadOrStageInstall(request, session, admin) {
+  try {
+    await admin.graphql(`#graphql
+      query ConnectorShopProbe {
+        shop { id }
+      }`);
+  } catch (err) {
+    if (isShopifyUnauthorizedError(err)) {
+      await forceReauth(request, session.shop, session);
+    }
+    throw err;
+  }
 
-  await stageInstall({ session, admin, apiVersion });
-  return getPendingInstall(session.shop);
+  const install = await getPendingInstall(session.shop);
+  const needsStage =
+    !install?.access_token ||
+    install.status === "uninstalled" ||
+    install.access_token !== session.accessToken;
+
+  if (needsStage) {
+    try {
+      await stageInstall({ session, admin, apiVersion });
+    } catch (err) {
+      if (isShopifyUnauthorizedError(err)) {
+        await forceReauth(request, session.shop, session);
+      }
+      throw err;
+    }
+    return getPendingInstall(session.shop);
+  }
+
+  return install;
 }
 
 export const loader = async ({ request }) => {
@@ -37,7 +69,10 @@ export const loader = async ({ request }) => {
   }
 
   try {
-    const install = await withOmsTimeout(loadOrStageInstall(session, admin), 9_000);
+    const install = await withOmsTimeout(
+      loadOrStageInstall(request, session, admin),
+      9_000,
+    );
     if (!install) {
       return { shop: session.shop, omsUrl, state: "not_staged", install: null };
     }
@@ -61,9 +96,10 @@ export const loader = async ({ request }) => {
       },
     };
   } catch (err) {
-    // admin.graphql throws a Response when Shopify rejects the stored token;
-    // it carries the headers that make App Bridge re-authenticate and retry.
     if (err instanceof Response) throw err;
+    if (isShopifyUnauthorizedError(err)) {
+      await forceReauth(request, session.shop, session);
+    }
     return {
       shop: session.shop,
       omsUrl,
