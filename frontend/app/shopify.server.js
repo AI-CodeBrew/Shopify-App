@@ -175,9 +175,14 @@ export const authenticate = {
 
 export const apiVersion = API_VERSION;
 export const registerWebhooks = webhookApp.registerWebhooks;
+/** Used by entry.server.jsx — no Admin iframe CSP needed for non-embedded. */
+export function addDocumentResponseHeaders(_request, _headers) {
+  // Intentionally empty: standalone app is not loaded inside Shopify Admin.
+}
 export { sessionStorage };
 export default {
   authenticate,
   sessionStorage,
   api,
+  addDocumentResponseHeaders,
 };
