@@ -1,8 +1,8 @@
 import { redirect } from "react-router";
 
 // Non-embedded entry:
-// - Shopify / install links land here with ?shop=... → hand off to /app
-//   (authenticate.admin runs OAuth if needed, then shows connection status).
+// - Install / Connect links land here with ?shop=... → /app
+//   (authorization-code OAuth runs if needed, then connection status).
 // - Anyone else hitting the bare app URL is sent to the OMS home.
 export async function loader({ request }) {
   const url = new URL(request.url);

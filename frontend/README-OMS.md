@@ -51,8 +51,8 @@ npm run dev
 Required env — see `.env.example` for the full annotated list:
 
 - `SHOPIFY_API_KEY` / `SHOPIFY_API_SECRET` — Partner Dashboard → API credentials
-- `SHOPIFY_APP_URL` — your deployed URL; also replace the three `REPLACE-ME`
-  placeholders in `shopify.app.toml`
+- `SHOPIFY_APP_URL` — `https://connector.fynktech.com` (must match
+  `application_url` / redirect URLs in `shopify.app.toml`)
 - `SCOPES` — must stay identical to `[access_scopes].scopes` in the TOML;
   `npm run oms:doctor` fails if they drift
 - `OMS_DATABASE_URL` — the same value as `DATABASE_URL` in the OMS's
@@ -80,11 +80,13 @@ Requested in `shopify.app.toml`, grouped by the OMS module that consumes them:
 
 - **Orders / OMS** — `read_orders`, `write_orders`, `read_all_orders`,
   `read_draft_orders`, `write_draft_orders`, `read_order_edits`, `write_order_edits`
+  (order **tags** use read/write_orders — no separate tag scopes)
 - **Fulfilment / WMS** — `read_fulfillments`, `write_fulfillments`, and the three
   fulfilment-order pairs (assigned, merchant-managed, third-party), `read_locations`
 - **Inventory** — `read_inventory`, `write_inventory`
 - **Returns** — `read_returns`, `write_returns`
-- **Catalogue** — `read_products`, `write_products`
+- **Catalogue** — `read_products`, `write_products`, `read_files`, `write_files`
+  (product image staged uploads)
 - **Customers** — `read_customers`, `write_customers`
 - **Shipping** — `read_shipping`, `write_shipping`
 - **Finance** — `read_shopify_payments_payouts`, `read_shopify_payments_disputes`,

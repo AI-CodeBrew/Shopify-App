@@ -1,5 +1,4 @@
-# fly.toml for the FynkTech AI connector (FastAPI).
-# Mirrors the Render blueprint in render.yaml - same env vars, same /health check.
+# fly.toml for the Connector FastAPI service (Fly.io only).
 app = "fynktech-ai-connector"
 primary_region = "sin"
 

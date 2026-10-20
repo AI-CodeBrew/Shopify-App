@@ -151,9 +151,11 @@ function renderStatusBanner({ state, install, error, onRetry, retrying }) {
     return (
       <s-banner tone="success" heading={`Ready to connect in ${install.organizationName}`}>
         <s-paragraph>
-          Your store credentials have been sent to FynkTech OMS. Press{" "}
-          <s-text fontWeight="bold">Open FynkTech OMS</s-text> above to finish
-          connecting - it completes automatically once you land there.
+          Installation on Shopify is complete. This Connector app only stages your
+          store credentials — the connection is finished in{" "}
+          <s-text fontWeight="bold">FynkTech OMS</s-text> (the dashboard where you
+          started Connect). You will be taken there in a few seconds, or use{" "}
+          <s-text fontWeight="bold">Continue to FynkTech OMS</s-text> above.
         </s-paragraph>
       </s-banner>
     );
@@ -191,7 +193,7 @@ export default function Index() {
   // backend-fastapi's POST /start pre-assignment, or afterAuth's email
   // match) - not that the OMS has finalized the connection yet. Appending
   // ?connected=1 makes the OMS's existing auto-finalize effect run the
-  // instant the merchant lands there, so this is still a single click.
+  // instant the merchant lands there.
   // `connected` means the OMS already finalized this store on a previous
   // visit - no need for that query param again, just open the OMS.
   const omsHref =
@@ -199,11 +201,26 @@ export default function Index() {
       ? `${omsUrl}/integrations/shopify${linked ? "?connected=1" : ""}`
       : null;
 
+  // App Store–friendly handoff (non-embedded): show Connector UI, then
+  // continue to FynkTech OMS after a short delay (manual button also works).
+  useEffect(() => {
+    if (!linked || !omsHref) return;
+    const timer = window.setTimeout(() => {
+      window.location.assign(omsHref);
+    }, 3500);
+    return () => window.clearTimeout(timer);
+  }, [linked, omsHref]);
+
   return (
     <s-page heading="FynkTech OMS connection">
       {omsHref && (
-        <s-button slot="primary-action" href={omsHref} target="_blank">
-          Open FynkTech OMS
+        <s-button
+          slot="primary-action"
+          href={omsHref}
+          target="_self"
+          variant="primary"
+        >
+          {linked ? "Continue to FynkTech OMS" : "Open FynkTech OMS"}
         </s-button>
       )}
 
@@ -220,6 +237,18 @@ export default function Index() {
           onRetry: () => revalidator.revalidate(),
           retrying: revalidator.state !== "idle",
         })}
+        {omsHref && (linked || connected) && (
+          <s-stack direction="block" gap="base">
+            <s-button href={omsHref} target="_self" variant="primary">
+              {linked ? "Continue to FynkTech OMS" : "Open FynkTech OMS"}
+            </s-button>
+            {linked && (
+              <s-paragraph>
+                Or wait a few seconds — we will open FynkTech OMS automatically.
+              </s-paragraph>
+            )}
+          </s-stack>
+        )}
       </s-section>
 
       <s-section heading="Store">

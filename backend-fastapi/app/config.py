@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     @field_validator("*", mode="before")
     @classmethod
     def _strip_strings(cls, value):
-        # A dashboard env var editor (Render, Vercel, ...) can silently carry
-        # a trailing newline or space along with a pasted value - invisible
-        # in the UI, but enough to make e.g. a JWKS URL fail with
+        # A dashboard env var editor (Fly secrets, Vercel, ...) can silently
+        # carry a trailing newline or space along with a pasted value -
+        # invisible in the UI, but enough to make e.g. a JWKS URL fail with
         # "URL can't contain control characters". Strip every string setting
         # so a paste artifact like that can't reach any code that uses it.
         return value.strip() if isinstance(value, str) else value

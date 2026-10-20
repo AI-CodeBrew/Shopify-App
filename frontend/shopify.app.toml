@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "b4106ce9be97bb8e2ac245470404d0d8"
-name = "FynkTech AI"
-application_url = "https://fynk-tech-ai.vercel.app"
+client_id = "3aabeb0fdfc4e793d1fef5d9690995da"
+name = "Connector"
+application_url = "https://connector.fynktech.com"
 embedded = false
 
 [webhooks]
@@ -21,15 +21,18 @@ api_version = "2026-10"
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 
 [access_scopes]
-# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_assigned_fulfillment_orders,read_customers,read_discounts,read_draft_orders,read_fulfillments,read_inventory,read_locations,read_merchant_managed_fulfillment_orders,read_order_edits,read_orders,read_price_rules,read_products,read_returns,read_shipping,read_shopify_payments_disputes,read_shopify_payments_payouts,read_third_party_fulfillment_orders,write_assigned_fulfillment_orders,write_customers,write_draft_orders,write_fulfillments,write_inventory,write_merchant_managed_fulfillment_orders,write_order_edits,write_orders,write_products,write_returns,write_shipping,write_third_party_fulfillment_orders"
+# Full set required by FynkTech OMS (orders sync, tags, fulfillments, inventory,
+# products/images, customers, returns, shipping, payments reads).
+# read_all_orders is protected — request approval in Partner Dashboard or
+# historical backfill is limited to ~60 days.
+scopes = "read_all_orders,read_assigned_fulfillment_orders,read_customers,read_discounts,read_draft_orders,read_files,read_fulfillments,read_inventory,read_locations,read_merchant_managed_fulfillment_orders,read_order_edits,read_orders,read_price_rules,read_products,read_returns,read_shipping,read_shopify_payments_disputes,read_shopify_payments_payouts,read_third_party_fulfillment_orders,write_assigned_fulfillment_orders,write_customers,write_draft_orders,write_files,write_fulfillments,write_inventory,write_merchant_managed_fulfillment_orders,write_order_edits,write_orders,write_products,write_returns,write_shipping,write_third_party_fulfillment_orders"
 optional_scopes = [ ]
 
 [auth]
 redirect_urls = [
-  "https://fynk-tech-ai.vercel.app/auth/callback",
-  "https://fynk-tech-ai.vercel.app/auth/shopify/callback",
-  "https://fynk-tech-ai.vercel.app/api/auth/callback"
+  "https://connector.fynktech.com/auth/callback",
+  "https://connector.fynktech.com/auth/shopify/callback",
+  "https://connector.fynktech.com/api/auth/callback"
 ]
 
 [build]

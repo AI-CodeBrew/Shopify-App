@@ -22,7 +22,7 @@ export default function Privacy() {
       <p style={styles.updated}>Last updated: September 2026</p>
 
       <p style={styles.p}>
-        FynkTech AI ("the app") connects a Shopify store to a merchant's
+        Connector ("the app") connects a Shopify store to a merchant's
         FynkTech OMS account, so that order, fulfilment, inventory, returns
         and finance data can be kept in sync between the two systems. This
         page describes what data the app collects, why, and how it's
@@ -58,6 +58,16 @@ export default function Privacy() {
         orders, inventory levels, returns, and finance records. We do not
         use this data for advertising, profiling, or any purpose unrelated
         to that sync.
+      </p>
+
+      <h2 style={styles.h2}>After installation</h2>
+      <p style={styles.p}>
+        After you approve permissions in Shopify, this app shows a short
+        confirmation screen and then continues you to your FynkTech OMS
+        dashboard (or you can open it with the Continue button). Final
+        connection of the store is completed in FynkTech OMS, not inside
+        Shopify Admin. That handoff is expected for this Connector and is
+        disclosed here so the flow is clear.
       </p>
 
       <h2 style={styles.h2}>Data sharing</h2>
