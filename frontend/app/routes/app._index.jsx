@@ -186,7 +186,6 @@ export default function Index() {
     }
   }, [fetcher.data]);
 
-  const claim = () => fetcher.submit({ email }, { method: "POST" });
   const linked = state === "linked";
   const connected = state === "connected";
   // `linked` means the pending row already has an organization_id (via
@@ -275,35 +274,46 @@ export default function Index() {
 
       {state === "unassigned" && (
         <s-section heading="Link to your FynkTech OMS account">
-          <s-stack direction="block" gap="base">
-            <s-text-field
-              label="FynkTech OMS email"
-              name="email"
-              value={email}
-              placeholder="you@yourcompany.com"
-              onChange={(e) => setEmail(e.currentTarget.value)}
-            />
-            {fetcher.data && !fetcher.data.ok && (
-              <s-banner tone="critical">
-                <s-paragraph>{fetcher.data.message}</s-paragraph>
-              </s-banner>
-            )}
-            <s-button
-              onClick={claim}
-              {...(isSubmitting ? { loading: true } : {})}
-            >
-              Link store
-            </s-button>
-            {omsUrl && (
-              <s-paragraph>
-                Use the email you sign in to FynkTech OMS with.{" "}
-                <s-link href={omsUrl} target="_blank">
-                  Open FynkTech OMS
-                </s-link>{" "}
-                to check your account.
-              </s-paragraph>
-            )}
-          </s-stack>
+          <fetcher.Form method="post">
+            <s-stack direction="block" gap="base">
+              <s-text-field
+                label="FynkTech OMS email"
+                name="email"
+                type="email"
+                value={email}
+                placeholder="you@yourcompany.com"
+                autocomplete="email"
+                onInput={(e) =>
+                  setEmail(e.currentTarget.value ?? e.target?.value ?? "")
+                }
+                onChange={(e) =>
+                  setEmail(
+                    e.detail?.value ??
+                      e.currentTarget.value ??
+                      e.target?.value ??
+                      "",
+                  )
+                }
+              />
+              {fetcher.data && !fetcher.data.ok && (
+                <s-banner tone="critical">
+                  <s-paragraph>{fetcher.data.message}</s-paragraph>
+                </s-banner>
+              )}
+              <s-button type="submit" {...(isSubmitting ? { loading: true } : {})}>
+                Link store
+              </s-button>
+              {omsUrl && (
+                <s-paragraph>
+                  Use the email you sign in to FynkTech OMS with.{" "}
+                  <s-link href={omsUrl} target="_blank">
+                    Open FynkTech OMS
+                  </s-link>{" "}
+                  to check your account.
+                </s-paragraph>
+              )}
+            </s-stack>
+          </fetcher.Form>
         </s-section>
       )}
 
